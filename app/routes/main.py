@@ -163,3 +163,66 @@ def delete_video(video_id):
     
     flash('✅ Видео успешно удалено!', 'success')
     return redirect(url_for('main.videos', map=map_id, grenade=grenade_id))
+
+@bp.route('/export-links')
+def export_links():
+    """Экспорт ссылок на видео в текстовый файл"""
+    # Получаем параметры из URL
+    map_id = request.args.get('map', type=int)
+    grenade_id = request.args.get('grenade', type=int)
+    
+    if not map_id or not grenade_id:
+        flash('Пожалуйста, выберите карту и гранату', 'warning')
+        return redirect(url_for('main.index'))
+    
+    # Ищем карту и гранату
+    map_obj = Map.query.get_or_404(map_id)
+    grenade_obj = Grenade.query.get_or_404(grenade_id)
+    
+    # Ищем видео
+    videos = Video.query.filter_by(
+        map_id=map_id, 
+        grenade_id=grenade_id
+    ).order_by(Video.created_at.desc()).all()
+    
+    # Создаем содержимое файла
+    file_content = f"""GrenadeGuide - Экспорт ссылок на видео
+Карта: {map_obj.display_name}
+Граната: {grenade_obj.display_name}
+Дата экспорта: {datetime.now().strftime('%d.%m.%Y %H:%M')}
+Количество видео: {len(videos)}
+
+Ссылки на видео:
+{"="*50}
+
+"""
+    
+    for i, video in enumerate(videos, 1):
+        file_content += f"{i}. {video.title}\n"
+        file_content += f"   Ссылка: {video.video_url}\n"
+        if video.description:
+            file_content += f"   Описание: {video.description}\n"
+        file_content += f"   Автор: {video.author.username}\n"
+        file_content += f"   Добавлено: {video.created_at.strftime('%d.%m.%Y')}\n"
+        file_content += "-" * 30 + "\n"
+    
+    file_content += f"\nВсего видео: {len(videos)}"
+    
+    # Создаем response с файлом (ИСПРАВЛЕННАЯ ЧАСТЬ)
+    from io import BytesIO
+    from flask import send_file
+    
+    # Создаем файл в памяти в БИНАРНОМ режиме
+    file_buffer = BytesIO()
+    file_buffer.write(file_content.encode('utf-8'))  # ← Кодируем в bytes
+    file_buffer.seek(0)
+    
+    # Генерируем имя файла
+    filename = f"grenadeguide_{map_obj.name}_{grenade_obj.name}_{datetime.now().strftime('%Y%m%d_%H%M')}.txt"
+    
+    return send_file(
+        file_buffer,
+        as_attachment=True,
+        download_name=filename,
+        mimetype='text/plain; charset=utf-8'
+    )
