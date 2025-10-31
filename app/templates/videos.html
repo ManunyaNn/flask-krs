@@ -1,0 +1,170 @@
+{% extends "base.html" %}
+
+{% block title %}Видео раскидки - GrenadeGuide{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-12">
+        <!-- Заголовок страницы -->
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <div>
+                <h1 class="h2">Раскидки гранат</h1>
+                <p class="text-muted mb-0">
+                    Карта: <strong>{{ map.display_name }}</strong> | 
+                    Граната: <strong>{{ grenade.display_name }}</strong>
+                </p>
+            </div>
+            <div>
+                <a href="{{ url_for('main.index') }}" class="btn btn-outline-secondary">
+                    ← Назад к поиску
+                </a>
+                <!-- ДОБАВЛЯЕМ КНОПКУ ДОБАВЛЕНИЯ ВИДЕО -->
+                <a href="{{ url_for('main.add_video') }}" class="btn btn-success">
+                    Добавить видео
+                </a>
+            </div>
+        </div>
+
+        <!-- Сетка видео -->
+        <div class="row">
+            {% for video in videos %}
+            <div class="col-md-6 col-lg-4 mb-4">
+                <div class="card h-100 bg-secondary border-light">
+                    <!-- Превью видео -->
+                    <div class="card-img-top position-relative">
+                        {% if video.thumbnail_url %}
+                        <img src="{{ video.thumbnail_url }}" class="card-img-top" alt="{{ video.title }}" 
+                             style="height: 200px; object-fit: cover;">
+                        {% else %}
+                        <div class="bg-dark d-flex align-items-center justify-content-center" 
+                             style="height: 200px;">
+                            <span class="text-muted">Нет превью</span>
+                        </div>
+                        {% endif %}
+                        
+                        <!-- Бейдж типа гранаты -->
+                        <span class="position-absolute top-0 end-0 m-2">
+                            <span class="badge bg-{{ grenade.color }}">{{ grenade.display_name }}</span>
+                        </span>
+                    </div>
+                    
+                    <div class="card-body d-flex flex-column">
+                        <!-- Заголовок видео -->
+                        <h5 class="card-title">{{ video.title }}</h5>
+                        
+                        <!-- Описание -->
+                        <p class="card-text flex-grow-1">{{ video.description }}</p>
+                        
+                        <!-- Мета-информация -->
+                        <div class="mt-auto">
+                            <small class="text-muted">
+                                Автор: {{ video.author.username }}<br>
+                                Добавлено: {{ video.created_at.strftime('%d.%m.%Y') }}
+                            </small>
+                        </div>
+                    </div>
+                    
+                    <div class="card-footer border-top-0">
+                        <div class="d-grid gap-2">
+                            <button type="button" class="btn btn-primary" 
+                                    data-bs-toggle="modal" 
+                                    data-bs-target="#videoModal{{ video.id }}">
+                                ▶ Смотреть раскидку
+                            </button>
+                            
+                            <!-- Кнопки управления (только для автора и администратора) -->
+                            {% if current_user.is_authenticated and (current_user.id == video.author_id or current_user.role == 'admin') %}
+                            <div class="btn-group w-100" role="group">
+                                <a href="{{ url_for('main.edit_video', video_id=video.id) }}" 
+                                class="btn btn-outline-warning btn-sm">
+                                    ✏️
+                                </a>
+                                <button type="button" class="btn btn-outline-danger btn-sm" 
+                                        data-bs-toggle="modal" 
+                                        data-bs-target="#deleteModal{{ video.id }}">
+                                    🗑️
+                                </button>
+                            </div>
+                            {% endif %}
+                        </div>
+                    </div>
+                    <div class="modal fade" id="deleteModal{{ video.id }}" tabindex="-1">
+                        <div class="modal-dialog">
+                            <div class="modal-content bg-dark">
+                                <div class="modal-header border-danger">
+                                    <h5 class="modal-title text-danger">Подтверждение удаления</h5>
+                                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                                </div>
+                                <div class="modal-body">
+                                    <p class="text-light">Вы уверены, что хотите удалить видео <strong>"{{ video.title }}"</strong>?</p>
+                                    <p class="text-light">Это действие нельзя отменить.</p>
+                                </div>
+                                <div class="modal-footer">
+                                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Отмена</button>
+                                    <form action="{{ url_for('main.delete_video', video_id=video.id) }}" method="POST" class="d-inline">
+                                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>  <!-- ← ДОБАВЛЯЕМ CSRF ТОКЕН -->
+                                        <button type="submit" class="btn btn-danger">Да, удалить</button>
+                                    </form>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Модальное окно для видео -->
+            <div class="modal fade" id="videoModal{{ video.id }}" tabindex="-1">
+                <div class="modal-dialog modal-lg">
+                    <div class="modal-content ">
+                        <div class="modal-header border-secondary">
+                            <h5 class="modal-title">{{ video.title }}</h5>
+                            <button type="button" class="btn-close btn-close-black" 
+                                    data-bs-dismiss="modal"></button>
+                        </div>
+                        <div class="modal-body">
+                            <!-- Встроенное видео -->
+                            <div class="ratio ratio-16x9">
+                                <iframe src="{{ video.video_url }}" 
+                                        frameborder="0" 
+                                        allowfullscreen></iframe>
+                            </div>
+                            
+                            <!-- Дополнительная информация -->
+                            <div class="mt-3">
+                                <p><strong>Описание:</strong></p>
+                                <p>{{ video.description }}</p>
+                                
+                                <div class="row text-muted small">
+                                    <div class="col-md-6">
+                                        <strong>Карта:</strong> {{ map.display_name }}
+                                    </div>
+                                    <div class="col-md-6">
+                                        <strong>Граната:</strong> {{ grenade.display_name }}
+                                    </div>
+                                    <div class="col-md-6">
+                                        <strong>Автор:</strong> {{ video.author.username }}
+                                    </div>
+                                    <div class="col-md-6">
+                                        <strong>Добавлено:</strong> {{ video.created_at.strftime('%d.%m.%Y') }}
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+        <!-- Сообщение если видео нет -->
+        {% if not videos %}
+        <div class="text-center py-5">
+            <h3>Видео не найдены</h3>
+            <p class="text-muted">Попробуйте выбрать другие параметры поиска</p>
+            <a href="{{ url_for('main.index') }}" class="btn btn-primary">
+                Вернуться к поиску
+            </a>
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,41 @@
+{% extends "base.html" %}
+
+{% block title %}Главная - GrenadeGuide{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-12 text-center">
+        <h1 class="display-4 mb-4">GrenadeGuide</h1>
+        <p class="lead">База данных раскидок гранат для Counter-Strike 2</p>
+        
+        <div class="mt-5">
+            <h3>Выберите карту и гранату</h3>
+            
+            <form method="GET" action="{{ url_for('main.videos') }}">
+                <div class="row justify-content-center mt-4">
+                    <div class="col-md-4 mb-3">
+                        <select class="form-select bg-secondary text-light" name="map" required>
+                            <option value="" selected disabled>Выберите карту</option>
+                            {% for map in maps %}
+                            <option value="{{ map.id }}">{{ map.display_name }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="col-md-4 mb-3">
+                        <select class="form-select bg-secondary text-light" name="grenade" required>
+                            <option value="" selected disabled>Выберите гранату</option>
+                            {% for grenade in grenades %}
+                            <option value="{{ grenade.id }}">{{ grenade.display_name }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                </div>
+                
+                <button type="submit" class="btn btn-primary btn-lg mt-3">
+                    Найти раскидки
+                </button>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}
